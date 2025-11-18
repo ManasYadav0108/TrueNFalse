@@ -1,0 +1,16 @@
+import pandas as pd
+from azure.cosmos import CosmosClient
+
+def get_cosmos_sql_df(conn_dict):
+    url = conn_dict["url"]
+    key = conn_dict["key"]
+    database_name = conn_dict["database_name"]
+    container_name = conn_dict["container_name"]
+    query = conn_dict["query_text"]
+
+    client = CosmosClient(url, credential=key)
+    db = client.get_database_client(database_name)
+    container = db.get_container_client(container_name)
+
+    items = list(container.query_items(query, enable_cross_partition_query=True))
+    return pd.DataFrame(items)
