@@ -1,4 +1,5 @@
-from azure.kusto.data import KustoConnectionStringBuilder, KustoClientimport pandas as pd
+from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
+import pandas as pd
 def get_kusto_df(conn_dict):
     cluster = conn_dict["cluster"]
     database = conn_dict["database"]

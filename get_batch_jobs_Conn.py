@@ -1,4 +1,6 @@
-from azure.batch import BatchServiceClientfrom azure.batch.batch_auth import SharedKeyCredentialsimport pandas as pd
+from azure.batch import BatchServiceClient
+from azure.batch.batch_auth import SharedKeyCredentials
+import pandas as pd
 def get_batch_jobs_df(conn_dict):
     account_name = conn_dict["account_name"]
     account_key = conn_dict["account_key"]

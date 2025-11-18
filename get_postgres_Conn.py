@@ -1,4 +1,5 @@
-import psycopg2import pandas as pd
+import psycopg2
+import pandas as pd
 def get_postgres_df(conn_dict):
     conn = psycopg2.connect(
         host=conn_dict["host"],
