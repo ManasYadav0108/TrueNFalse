@@ -1,5 +1,4 @@
-from azure.eventhub import EventHubConsumerClient
-import pandas as pd
+from azure.eventhub import EventHubConsumerClientimport pandas as pd
 def get_eventhub_df(conn_dict):
     conn_str = conn_dict["connection_string"]
     eventhub_name = conn_dict["eventhub_name"]

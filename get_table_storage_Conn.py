@@ -1,4 +1,5 @@
-from azure.data.tables import TableServiceClientimport pandas as pd
+from azure.data.tables import TableServiceClient
+import pandas as pd
 def get_table_storage_df(conn_dict):
     conn_str = conn_dict["connection_string"]
     table_name = conn_dict["table_name"]
