@@ -3,123 +3,51 @@ from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
 from flask import Flask, request
 from utility import get_connection
 
-# from connectors.kusto_connector import get_kusto_df
-# from connectors.mysql_connector import get_mysql_df
-# from connectors.postgres_connector import get_postgres_df
-# from connectors.table_storage_connector import get_table_storage_df
-# from connectors.eventhub_connector import get_eventhub_df
-# from connectors.search_connector import get_search_df
-# from connectors.batch_connector import get_batch_jobs_df
-# from connectors.keyvault_connector import get_keyvault_secret
-# from connectors.sqlserver_connector import get_sqlserver_df
-# from connectors.adls_connector import get_adls_df   # your original
+def read_source(id):
 
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-
-def get_kusto_df(dataSet):
-    """
-    connector_name: name of the row in connector_kusto table
-    mysql_conn: active MySQL DB connection (mysql.connector.connect)
-    """
-
-    # -------------------------------------------------
-    # 1. Fetch Kusto credentials from MySQL
-    # -------------------------------------------------
-    conn = mysql_conn.cursor(dictionary=True)
-
-    conn.execute("""
-        SELECT cluster_url, database_name, query_text,
-               client_id, client_secret, authority_id
-        FROM connector_kusto
-        WHERE name = %s
-    """, (connector_name,))
-
-    creds = conn.fetchone()
-
-    if not creds:
-        raise Exception(f"No Azure Data Explorer config found for '{connector_name}'")
-
-    # -------------------------------------------------
-    # 2. Create Kusto Connection Builder
-    # -------------------------------------------------
-    kcsb = KustoConnectionStringBuilder.with_aad_application_key_authentication(
-        creds["cluster_url"],
-        creds["client_id"],
-        creds["client_secret"],
-        creds["authority_id"]
-    )
-
-    client = KustoClient(kcsb)
-
-    # -------------------------------------------------
-    # 3. Execute query from MySQL configuration
-    # -------------------------------------------------
-    result = client.execute(
-        database=creds["database_name"],
-        query=creds["query_text"]
-    )
-
-    # Convert table to pandas DataFrame
-    df = result.primary_results[0].to_dataframe()
-
-    return df
-
-
-
-
-def get_azure_mysql_df(connector_name, mysql_conn):
-    conn = mysql_conn.cursor(dictionary=True)
-    conn.execute("""
-        SELECT host, database_name, username, password, port, query_text
-        FROM connector_azure_mysql
-        WHERE name=%s
-    """, (connector_name,))
-    creds = conn.fetchone()
+    # 1. Fetch connection details as a dictionary
+    cursor.execute("""
+        SELECT *
+        FROM connectors
+        WHERE id = %s
+    """, (id,))
+    
+    conn_dict = cursor.fetchone()   # ← This is now a Python dictionary
+    cursor.close()
     conn.close()
 
-    db = mysql.connector.connect(
-        host=creds["host"],
-        user=creds["username"],
-        password=creds["password"],
-        database=creds["database_name"],
-        port=creds["port"]
-    )
+    if not conn_dict:
+        return {"error": "Invalid ID"}, 404
 
-    df = pd.read_sql(creds["query_text"], con=db)
-    db.close()
-    return df
+    # 2. Get the source type from the dictionary row
+    source = conn_dict["source"]
 
-
-
-
-app = Flask(__name__)
-
-def read_source(source):
-
-    conn  = get_connection()
-
+    # 3. List of connector functions
     connectors = {  
-        "kusto": get_kusto_df,
-        "mysql": get_mysql_df,
-        "postgres": get_postgres_df,
-        "table": get_table_storage_df,
-        "eventhub": get_eventhub_df,
-        "search": get_search_df,
-        "batch": get_batch_jobs_df,
+        "kusto": get_kusto_Conn,
+        "mysql": get_mysql_Conn,
+        "postgres": get_postgres_Conn,
+        "table": get_table_storage_Conn,
+        "eventhub": get_eventhub_Conn,
+        "search": get_search_Conn,
+        "batch": get_batch_jobs_Conn,
         "keyvault": get_keyvault_secret,
-        "sqlserver": get_sqlserver_df,
-        "adls": get_adls_df
+        "sqlserver": get_sqlserver_Conn,
+        "adls": get_adls_Conn
     }
 
+    # 4. Validate source
     if source not in connectors:
         return {"error": "Invalid source"}, 400
-    df = connectors[source](dataSet)
 
-    if not hasattr(df, "to_json"):  # Key Vault returns string
+    # 5. Call the correct connector function and pass dictionary
+    df = connectors[source](conn_dict)
+
+    # 6. KeyVault returns string → no "to_json"
+    if not hasattr(df, "to_json"):
         return {"value": df}
 
     return df.to_json(orient="records")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
