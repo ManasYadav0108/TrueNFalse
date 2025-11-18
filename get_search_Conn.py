@@ -1,4 +1,5 @@
-from azure.search.documents import SearchClientimport pandas as pd
+from azure.search.documents import SearchClient
+import pandas as pd
 def get_search_df(conn_dict):
     endpoint = conn_dict["endpoint"]
     index_name = conn_dict["index_name"]
